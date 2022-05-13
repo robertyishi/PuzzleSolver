@@ -38,11 +38,13 @@ bool contains(const PositionSet &set, Position *pos) {
 }
 
 void addParent(PositionGraph &graph, Position *child, Position *parent) {
+    Position *parentCpy = parent->getCopy();
     auto it = graph.find(child);
     if (it == graph.end()) {
-        graph.emplace(child->getCopy(), std::vector<Position *>());
+        graph.emplace(child->getCopy(), std::vector<Position *>(1, parentCpy));
+    } else {
+        it->second.push_back(parentCpy);
     }
-    graph[child].push_back(parent->getCopy());
 }
 
 void findPrimitives(const Puzzle *puzzle, PositionVector &primitives,
@@ -212,6 +214,7 @@ void Solver::printShortestPath(std::ostream &outs) {
         }
         --rmt;
     }
+    delete currPos;
     outs << "[END]" << std::endl;
 }
 
