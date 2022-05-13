@@ -6,7 +6,7 @@ using namespace std;
 
 int main()
 {
-    ToH toh(9, 3);
+    ToH toh(1, 1);
     Solver solver(&toh);
     int rmt = solver.solve();
     cout << "rmt of root: " << rmt << endl;

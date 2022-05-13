@@ -66,6 +66,9 @@ ToH::ToH(std::size_t disks, std::size_t rods) {
 ToH::~ToH() {}
 
 Position *ToH::getInitialPosition() const {
+    if (this->rods == 1) {
+        return new ToHPosition(0);
+    }
     size_t pos = 0;
     for (size_t i = 0; i < this->disks; ++i) {
         pos = pos * 10 + 1;

@@ -54,6 +54,11 @@ void findPrimitives(const Puzzle *puzzle, PositionVector &primitives,
     PositionSet closed;
     fringe.push(initial_position);
 
+    /* Initialize the root node in the backward graph. We do this extra
+     * step so that we do not need to check if root is included in the
+     * backward graph in the backward-traversing step. */
+    backwardGraph.emplace(initial_position->getCopy(), PositionVector());
+
     while (fringe.size()) {
         Position *curr_pos = fringe.front();
         fringe.pop();
@@ -180,7 +185,7 @@ int Solver::solve() {
 void Solver::printShortestPath(std::ostream &outs) {
     int rmt = solve();
     if (rmt == RMT_MAX) {
-        outs << "[NO SOLUTIONS]";
+        outs << "[NO SOLUTIONS]" << std::endl;
         return;
     }
 
@@ -190,6 +195,7 @@ void Solver::printShortestPath(std::ostream &outs) {
         MoveVector validMoves = this->puzzle->getMoves(currPos);
         for (Move *move : validMoves) {
             nextPos = this->puzzle->doMove(currPos, move);
+            assert(this->data.find(nextPos) != this->data.end());
             int nextRmt = this->data[nextPos];
             if (nextRmt < rmt) {
                 outs << "[rmt " << rmt << ": " << move->toString() << "]->";
