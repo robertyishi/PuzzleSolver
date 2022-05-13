@@ -1,7 +1,9 @@
-#include "solver.h"
+#include <cassert>
 #include <queue>
+#include "solver.h"
 #include <unordered_set>
 #include <vector>
+#define RMT_MAX INT_MAX
 
 typedef std::unordered_map<Position *, std::vector<Position *>, PositionHasher, PositionEqualFn> PositionGraph;
 typedef std::unordered_set<Position *, PositionHasher, PositionEqualFn> PositionSet;
@@ -25,6 +27,9 @@ Solver::Solver(const Solver &other) {
 
 Solver::~Solver() {
     delete this->puzzle;
+    for (auto it = this->data.begin(); it != this->data.end(); ++it) {
+        delete it->first;
+    }
 }
 
 namespace {
@@ -40,7 +45,8 @@ void addParent(PositionGraph &graph, Position *child, Position *parent) {
     graph[child].push_back(parent->getCopy());
 }
 
-void findPrimitives(const Puzzle *puzzle, PositionVector &primitives, PositionGraph &backwardGraph) {
+void findPrimitives(const Puzzle *puzzle, PositionVector &primitives,
+                    PositionGraph &backwardGraph, SolverData& data) {
     /* Memory handling: If a position was closed when it is visited, deallocate it immediately;
      * otherwise, store the pointer in closed and deallocate when finished. */
     Position *initial_position = puzzle->getInitialPosition();
@@ -58,6 +64,7 @@ void findPrimitives(const Puzzle *puzzle, PositionVector &primitives, PositionGr
             continue;
         }
         closed.insert(curr_pos);
+        data.emplace(curr_pos->getCopy(), RMT_MAX);
         if (puzzle->isPrimitivePosition(curr_pos)) {
             /* Current position is a primitive and therefore has no children.
              * Add it to the list of primitive positions. */
@@ -81,12 +88,8 @@ void findPrimitives(const Puzzle *puzzle, PositionVector &primitives, PositionGr
 }
 
 void updateRemoteness(SolverData &data, Position *pos, int rmt) {
-    auto it = data.find(pos);
-    if (it == data.end()) {
-        data.emplace(pos->getCopy(), rmt);
-    } else {
-        data[pos] = std::min(data[pos], rmt);
-    }
+    assert(data.find(pos) != data.end());
+    data[pos] = std::min(data[pos], rmt);
 }
 
 void updateRemotenessFrom(SolverData &data, PositionGraph& backwardGraph, Position *primitive) {
@@ -139,11 +142,12 @@ void deallocatePositionVector(const PositionVector &v) {
 void deallocatePositionGraph(PositionGraph &graph) {
     for (auto it = graph.begin(); it != graph.end(); ++it) {
         deallocatePositionVector(it->second);
+        delete it->first;
     }
 }
 }
 
-int Solver::solve(const Puzzle *puzzle) {
+int Solver::solve() {
     if (!this->solved) {
         /* Backward graph. */
         PositionGraph backwardGraph;
@@ -151,8 +155,9 @@ int Solver::solve(const Puzzle *puzzle) {
         PositionVector primitives;
 
         /* Step 1: Run BFS from initial position to find all primitive states,
-       constructing the backward graph in the meantime. */
-        findPrimitives(puzzle, primitives, backwardGraph);
+         * constructing the backward graph and initializing solver data in
+         * the meantime. */
+        findPrimitives(this->puzzle, primitives, backwardGraph, this->data);
 
         /* Step 2: Run BSF from every primitive state, find remoteness of each
          * position to each primitive state, and take the minimum as the actual
@@ -166,10 +171,42 @@ int Solver::solve(const Puzzle *puzzle) {
         this->solved = true;
     }
     /* Retrieve remotenes of the initial position. */
-    Position *init_pos = puzzle->getInitialPosition();
-    int rmt = this->data.find(init_pos)->second;
-    delete init_pos;
+    Position *initPos = this->puzzle->getInitialPosition();
+    int rmt = this->data.find(initPos)->second;
+    delete initPos;
     return rmt;
+}
+
+void Solver::printShortestPath(std::ostream &outs) {
+    int rmt = solve();
+    if (rmt == RMT_MAX) {
+        outs << "[NO SOLUTIONS]";
+        return;
+    }
+
+    Position *currPos = this->puzzle->getInitialPosition();
+    Position *nextPos;
+    while (rmt) {
+        MoveVector validMoves = this->puzzle->getMoves(currPos);
+        for (Move *move : validMoves) {
+            nextPos = this->puzzle->doMove(currPos, move);
+            int nextRmt = this->data[nextPos];
+            if (nextRmt < rmt) {
+                outs << "[rmt " << rmt << ": " << move->toString() << "]->";
+                delete currPos;
+                currPos = nextPos;
+                break;
+            } else {
+                delete nextPos;
+            }
+        }
+        /* We should have found next move, otherwise there is a bug. */
+        for (Move *move : validMoves) {
+            delete move;
+        }
+        --rmt;
+    }
+    outs << "[END]" << std::endl;
 }
 
 

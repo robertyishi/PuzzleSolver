@@ -8,10 +8,12 @@ SOURCES += \
         move.cpp \
         position.cpp \
         puzzle.cpp \
-        solver.cpp
+        solver.cpp \
+        toh.cpp
 
 HEADERS += \
     move.h \
     position.h \
     puzzle.h \
-    solver.h
+    solver.h \
+    toh.h
