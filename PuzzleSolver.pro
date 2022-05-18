@@ -5,6 +5,7 @@ CONFIG -= qt
 
 SOURCES += \
         main.cpp \
+        mmz.cpp \
         move.cpp \
         position.cpp \
         puzzle.cpp \
@@ -12,6 +13,7 @@ SOURCES += \
         toh.cpp
 
 HEADERS += \
+    mmz.h \
     move.h \
     position.h \
     puzzle.h \

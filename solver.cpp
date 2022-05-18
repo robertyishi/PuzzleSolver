@@ -187,7 +187,7 @@ int Solver::solve() {
 void Solver::printShortestPath(std::ostream &outs) {
     int rmt = solve();
     if (rmt == RMT_MAX) {
-        outs << "[NO SOLUTIONS]" << std::endl;
+        outs << "[NO SOLUTION]" << std::endl;
         return;
     }
 
