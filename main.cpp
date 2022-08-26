@@ -1,6 +1,7 @@
 #include "mmz.h"
 #include "solver.h"
 #include "toh.h"
+#include "ternary.h"
 #include <chrono>
 #include <iostream>
 
@@ -14,8 +15,10 @@ void debugPlay();
 
 int main()
 {
-    MMz mmz(fileName);
-    solve(mmz, true);
+    Ternary t;
+    Solver solver(&t);
+    solver.solve();
+    solver.printInfo(cout, true);
     return 0;
 }
 

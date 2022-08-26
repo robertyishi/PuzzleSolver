@@ -19,7 +19,7 @@ public:
 
     int solve();
     void printShortestPath(std::ostream &outs);
-    void printInfo(std::ostream &outs) const;
+    void printInfo(std::ostream &outs, bool binHash = false) const;
 };
 
 #endif // SOLVER_H

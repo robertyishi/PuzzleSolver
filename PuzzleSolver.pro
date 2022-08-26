@@ -10,6 +10,7 @@ SOURCES += \
         position.cpp \
         puzzle.cpp \
         solver.cpp \
+        ternary.cpp \
         toh.cpp
 
 HEADERS += \
@@ -18,4 +19,5 @@ HEADERS += \
     position.h \
     puzzle.h \
     solver.h \
+    ternary.h \
     toh.h

@@ -1,4 +1,5 @@
 #include "solver.h"
+#include <bitset>
 #include <cassert>
 #include <queue>
 #include <thread>
@@ -73,19 +74,16 @@ void findPrimitives(const Puzzle *puzzle, PositionVector &primitives,
         closed.insert(curr_pos);
         data.emplace(curr_pos->getCopy(), RMT_MAX);
         if (puzzle->isPrimitivePosition(curr_pos)) {
-            /* Current position is a primitive and therefore has no children.
-             * Add it to the list of primitive positions. */
+            /* Current position is a primitive. Add it to the list of primitive positions. */
             primitives.push_back(curr_pos->getCopy());
-        } else {
-            /* Current position is not a primitive, expand it and
-             * enqueue all children positions. */
-            MoveVector moves = puzzle->getMoves(curr_pos);
-            for (Move *move : moves) {
-                Position *next_pos = puzzle->doMove(curr_pos, move);
-                fringe.push(next_pos);
-                addParent(backwardGraph, next_pos, curr_pos);
-                delete move;
-            }
+        }
+        /* Expand current possition and enqueue all children positions. */
+        MoveVector moves = puzzle->getMoves(curr_pos);
+        for (Move *move : moves) {
+            Position *next_pos = puzzle->doMove(curr_pos, move);
+            fringe.push(next_pos);
+            addParent(backwardGraph, next_pos, curr_pos);
+            delete move;
         }
     }
     /* Deallocate all position pointers in closed set. */
@@ -105,8 +103,8 @@ void updateRemotenessFrom(SolverData &data, PositionGraph& backwardGraph, Positi
     PositionSet closed;
     fringe.push(primitive);
     int rmt = 0;
-    size_t rem = 1;
-    size_t numPosNextLevel = 0;
+    std::size_t rem = 1;
+    std::size_t numPosNextLevel = 0;
 
     while (fringe.size()) {
         Position *curr_pos = fringe.front();
@@ -267,8 +265,17 @@ void Solver::printShortestPath(std::ostream &outs) {
     outs << "[END]" << std::endl;
 }
 
-void Solver::printInfo(std::ostream &outs) const {
+void Solver::printInfo(std::ostream &outs, bool binHash) const {
     outs << "Number of positions: " << data.size() << "\n";
+    outs << "---------- BEGIN SOLVER DATA ----------\n";
+    for (auto it = this->data.begin(); it != this->data.end(); ++it) {
+        if (binHash) {
+            outs << '[' << std::bitset<64>(it->first->hash()) << ": " << it->second << "]\n";
+        } else {
+            outs << '[' << it->first->hash() << ": " << it->second << "]\n";
+        }
+    }
+    outs << "---------- END SOLVER DATA ----------\n";
 }
 
 

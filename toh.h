@@ -61,7 +61,6 @@ public:
     ToHMove(std::size_t diskIdx = 0, std::size_t rodIdx = 0);
     virtual ~ToHMove() override;
 
-
     std::size_t getDiskIdx() const;
     std::size_t getRodIdx() const;
 
