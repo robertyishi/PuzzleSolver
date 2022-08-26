@@ -1,7 +1,6 @@
 #ifndef TOH_H
 #define TOH_H
 #include "puzzle.h"
-//#include <cstdint>
 
 /**
  * @brief Position of a Towers of Hanoi game.

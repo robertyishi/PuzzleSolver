@@ -1,8 +1,8 @@
+#include "mmz.h"
 #include <cassert>
 #include <fstream>
-#include "mmz.h"
-#include <sstream>
 #include <limits>
+#include <sstream>
 
 namespace {
 const std::uint64_t ONE = 1;
@@ -30,13 +30,13 @@ const std::uint64_t INVALID_LOC = std::numeric_limits<uint64_t>::max();
  * +------+-------------+--------------+--------------+--------------+--------------+
  *    63   62         52 51          39 38          26 25          13 12           0
  */
-const std::size_t   CHARACTER_LOC_LENGTH        = 10;
-const std::size_t   CHARACTER_ALIVE_SHIFT       = CHARACTER_LOC_LENGTH;
-const std::size_t   CHARACTER_COLOR_SHIFT       = CHARACTER_ALIVE_SHIFT + 1;
-const std::size_t   CHARACTER_STRENGTH_SHIFT    = CHARACTER_COLOR_SHIFT;
-const std::size_t   CHARACTER_WALKING_SHIFT     = CHARACTER_COLOR_SHIFT + 1;
-const std::size_t   CHARACTER_INFO_LENGTH       = CHARACTER_WALKING_SHIFT + 1;
-const std::size_t   PLAYER_INFO_LENGTH          = CHARACTER_ALIVE_SHIFT + 1;
+const std::size_t CHARACTER_LOC_LENGTH     = 10;
+const std::size_t CHARACTER_ALIVE_SHIFT    = CHARACTER_LOC_LENGTH;
+const std::size_t CHARACTER_COLOR_SHIFT    = CHARACTER_ALIVE_SHIFT + 1;
+const std::size_t CHARACTER_STRENGTH_SHIFT = CHARACTER_COLOR_SHIFT;
+const std::size_t CHARACTER_WALKING_SHIFT  = CHARACTER_COLOR_SHIFT + 1;
+const std::size_t CHARACTER_INFO_LENGTH    = CHARACTER_WALKING_SHIFT + 1;
+const std::size_t PLAYER_INFO_LENGTH       = CHARACTER_ALIVE_SHIFT + 1;
 
 /* Only position and alive masks are valid for player. */
 const std::uint64_t CHARACTER_LOC_MASK      = (ONE << CHARACTER_LOC_LENGTH) - 1;
@@ -45,8 +45,8 @@ const std::uint64_t CHARACTER_COLOR_MASK    = ONE << CHARACTER_COLOR_SHIFT;
 const std::uint64_t CHARACTER_WALKING_MASK  = ONE << CHARACTER_WALKING_SHIFT;
 const std::uint64_t CHARACTER_STRENGTH_MASK = CHARACTER_COLOR_MASK | CHARACTER_WALKING_MASK;
 
-const std::size_t   GATE_SHIFT  = MAX_NPCS * CHARACTER_INFO_LENGTH + PLAYER_INFO_LENGTH;
-const std::uint64_t GATE_MASK   = ONE << GATE_SHIFT;
+const std::size_t   GATE_SHIFT = MAX_NPCS * CHARACTER_INFO_LENGTH + PLAYER_INFO_LENGTH;
+const std::uint64_t GATE_MASK  = ONE << GATE_SHIFT;
 
 const char EMPTY         = '_';
 const char WALL          = 'W';
@@ -62,24 +62,24 @@ const char RED_MMY       = '3';  // converts to 0b11
 const char PLAYER        = '4';
 
 /* Helper Functions */
-void setBit(std::uint64_t &number, std::size_t n, bool x);
-std::size_t toWorldDim(std::size_t gridDim);
-std::size_t toGridDim(std::size_t worldDim);
+inline void setBit(std::uint64_t &number, std::size_t n, bool x);
+inline std::size_t toWorldDim(std::size_t gridDim);
+inline std::size_t toGridDim(std::size_t worldDim);
 std::size_t toWorldLoc(std::uint64_t gridLoc, std::size_t gridCols);
 std::size_t toGridLoc(std::uint64_t worldLoc, std::size_t worldCols);
-bool isChr(char c);
-bool isNPC(char c);
-bool isKey(char c);
-bool isGate(char c);
-bool isExit(char c);
-bool isTrap(char c);
+inline bool isChr(char c);
+inline bool isNPC(char c);
+inline bool isKey(char c);
+inline bool isGate(char c);
+inline bool isExit(char c);
+inline bool isTrap(char c);
 
-void chrSetAlive(std::uint64_t &pos, std::uint64_t chrIdx);
-void chrSetLoc(std::uint64_t &pos, std::uint64_t loc, std::uint64_t chrIdx);
-void chrSetStrength(std::uint64_t &pos, std::uint64_t strength, std::uint64_t chrIdx);
+inline void chrSetAlive(std::uint64_t &pos, std::uint64_t chrIdx);
+inline void chrSetLoc(std::uint64_t &pos, std::uint64_t loc, std::uint64_t chrIdx);
+inline void chrSetStrength(std::uint64_t &pos, std::uint64_t strength, std::uint64_t chrIdx);
 bool addChr(std::uint64_t &pos, char chr, std::uint64_t loc);
-void killChr(std::uint64_t &pos, std::size_t chrIdx);
-void killPlayer(std::uint64_t &pos);
+inline void killChr(std::uint64_t &pos, std::size_t chrIdx);
+inline void killPlayer(std::uint64_t &pos);
 bool collect(std::uint64_t &pos);
 void setGate(std::uint64_t &pos, char gate);
 void setGate(std::uint64_t &pos, bool closed);
@@ -88,41 +88,41 @@ void toggleGate(std::uint64_t &pos);
 uint64_t moveChr(std::uint64_t &pos, std::size_t chrIdx, int direction, std::size_t gridCols);
 std::uint64_t movePlayer(std::uint64_t &pos, int direction, std::size_t gridCols);
 
-bool gateIsClosed(std::uint64_t pos);
-std::uint64_t chrLoc(std::uint64_t pos, std::size_t chrIdx);
-bool chrIsAlive(std::uint64_t pos, std::size_t chrIdx);
-bool chrIsWalking(std::uint64_t pos, std::size_t chrIdx);
-bool chrIsRed(std::uint64_t pos, std::size_t chrIdx);
-std::uint64_t chrStrength(std::uint64_t pos, std::size_t chrIdx);
-std::uint64_t playerLoc(std::uint64_t pos);
-bool playerIsAlive(std::uint64_t pos);
+inline bool gateIsClosed(std::uint64_t pos);
+inline std::uint64_t chrLoc(std::uint64_t pos, std::size_t chrIdx);
+inline bool chrIsAlive(std::uint64_t pos, std::size_t chrIdx);
+inline bool chrIsWalking(std::uint64_t pos, std::size_t chrIdx);
+inline bool chrIsRed(std::uint64_t pos, std::size_t chrIdx);
+inline std::uint64_t chrStrength(std::uint64_t pos, std::size_t chrIdx);
+inline std::uint64_t playerLoc(std::uint64_t pos);
+inline bool playerIsAlive(std::uint64_t pos);
 
 void getOffsets(int direction, int &i_ofs, int &j_ofs);
 } // Anonymous Namespace
 
 /* class MMzPosition */
 
-MMzPosition::MMzPosition(std::uint64_t pos) {
+inline MMzPosition::MMzPosition(std::uint64_t pos) {
     this->pos = pos;
 }
 
-MMzPosition::~MMzPosition() {}
+inline MMzPosition::~MMzPosition() {}
 
-uint64_t MMzPosition::getPos() const {
+inline uint64_t MMzPosition::getPos() const {
     return this->pos;
 }
 
-std::size_t MMzPosition::hash() const {
+inline std::size_t MMzPosition::hash() const {
     assert(sizeof(std::size_t) == sizeof(std::uint64_t));
     return this->pos;
 }
 
-bool MMzPosition::operator ==(const Position &other_) const {
+inline bool MMzPosition::operator ==(const Position &other_) const {
     const MMzPosition *other = static_cast<const MMzPosition *>(&other_);
     return this->pos == other->pos;
 }
 
-Position *MMzPosition::getCopy() const {
+inline Position *MMzPosition::getCopy() const {
     return new MMzPosition(this->pos);
 }
 
@@ -145,7 +145,7 @@ MMzMove::MMzMove(int move) {
 
 MMzMove::~MMzMove() {}
 
-int MMzMove::getDirection() const {
+inline int MMzMove::getDirection() const {
     return this->direction;
 }
 
@@ -168,7 +168,7 @@ std::string MMzMove::toString() const {
 
 /* class MMz */
 
-MMz::MMz() {
+inline MMz::MMz() {
     this->initialized = false;
 }
 
@@ -176,7 +176,7 @@ MMz::MMz(const std::string &fileName) {
     readFromFile(fileName);
 }
 
-MMz::~MMz() {}
+inline MMz::~MMz() {}
 
 bool MMz::readFromFile(const std::string &fileName) {
     this->initialized = false;
@@ -217,12 +217,16 @@ std::string MMz::asString(const MMzPosition *mmzPos) const {
     for (std::size_t i = 0; i < this->worldRows; ++i) {
         for (std::size_t j = 0; j < this->worldCols; ++j) {
             bool replaced = false;
-            if (mmzPos) {
+            if (mmzPos && (i % 2) && (j % 2)) {
                 std::uint64_t pos = mmzPos->getPos();
                 for (std::uint64_t chrIdx = 0; chrIdx < PLAYER_IDX + 1; ++chrIdx) {
-                    if (chrIsAlive(pos, chrIdx) && (i % 2) && (j % 2) &&
-                            chrLoc(pos, chrIdx) == toGridLoc(walker, this->worldCols)) {
-                        ss.put('0' + chrStrength(pos, chrIdx));
+                    if (chrIsAlive(pos, chrIdx) && chrLoc(pos, chrIdx) == toGridLoc(walker, this->worldCols)) {
+                        if (chrIdx == PLAYER_IDX) {
+                            ss.put(PLAYER);
+                        }
+                        else {
+                            ss.put('0' + chrStrength(pos, chrIdx));
+                        }
                         replaced = true;
                         break;
                     }
@@ -239,7 +243,7 @@ std::string MMz::asString(const MMzPosition *mmzPos) const {
     return ss.str();
 }
 
-Position *MMz::getInitialPosition() const {
+inline Position *MMz::getInitialPosition() const {
     return new MMzPosition(this->initPos);
 }
 
@@ -285,13 +289,8 @@ Position *MMz::doMove(const Position *pos_, const Move *move_) const {
     }
     /* Handle NPCs. */
     bool gateToggled;
-    if (moveNPCs(pos, false, gateToggled)) {
-        return new MMzPosition(pos);
-    } else if (gateToggled) {
-        toggleGate(pos);
-    }
-    for (int i = 0; i < 2; ++i) {
-        if (moveNPCs(pos, true, gateToggled)) {
+    for (int i = 0; i < 3; ++i) {
+        if (moveNPCs(pos, i != 0, gateToggled)) {
             return new MMzPosition(pos);
         } else if (gateToggled) {
             toggleGate(pos);
@@ -328,7 +327,6 @@ std::uint64_t MMz::getDestLoc(std::uint64_t pos, std::size_t chrIdx, int directi
 bool MMz::isValidMove(const MMzPosition *mmzPos, const MMzMove *move) const {
     std::uint64_t pos = mmzPos->getPos();
     int dir = move->getDirection();
-    // NOTE: can move this logic to getDestLoc().
     if (!playerIsAlive(pos)) {
         /* No moves are available if player is dead. */
         return false;
@@ -363,6 +361,7 @@ std::uint64_t MMz::moveNPC(std::uint64_t &pos, std::uint64_t chrIdx, bool &gateT
             newNloc = toGridLoc(destWorldLoc, this->worldCols);
         }
     } else {
+        /* Prioritizes horizontal moves. */
         if (n_j > p_j && (destWorldLoc = getDestLoc(pos, chrIdx, MMzMove::LEFT)) != INVALID_LOC) {
             newNloc = toGridLoc(destWorldLoc, this->worldCols);
         } else if (n_j < p_j && (destWorldLoc = getDestLoc(pos, chrIdx, MMzMove::RIGHT)) != INVALID_LOC) {
@@ -395,16 +394,16 @@ bool MMz::moveNPCs(std::uint64_t &pos, bool walking, bool &gateToggled) const {
 
 namespace {
 /* Helper functions */
-void setBit(std::uint64_t &number, std::size_t n, bool x) {
+inline void setBit(std::uint64_t &number, std::size_t n, bool x) {
     /* Clear the Nth bit, then set it to X. */
     number = (number & ~(ONE << n)) | (static_cast<std::uint64_t>(x) << n);
 }
 
-std::size_t toWorldDim(std::size_t gridDim) {
+inline std::size_t toWorldDim(std::size_t gridDim) {
     return (gridDim << 1) + 1;
 }
 
-std::size_t toGridDim(std::size_t worldDim) {
+inline std::size_t toGridDim(std::size_t worldDim) {
     return worldDim >> 1;
 }
 
@@ -420,43 +419,43 @@ std::size_t toGridLoc(std::uint64_t worldLoc, std::size_t worldCols) {
     return toGridDim(world_i) * toGridDim(worldCols) + toGridDim(world_j);
 }
 
-bool isChr(char c) {
+inline bool isChr(char c) {
     return c == WHITE_SCP || c == RED_SCP ||  \
             c == WHITE_MMY || c == RED_MMY || \
             c == PLAYER;
 }
 
-bool isNPC(char c) {
+inline bool isNPC(char c) {
     return isChr(c) && c != PLAYER;
 }
 
-bool isKey(char c) {
+inline bool isKey(char c) {
     return c == KEY;
 }
 
-bool isGate(char c) {
+inline bool isGate(char c) {
     return c == GATE || c == UNLOCKED_GATE;
 }
 
-bool isExit(char c) {
+inline bool isExit(char c) {
     return c == EXIT;
 }
 
-bool isTrap(char c) {
+inline bool isTrap(char c) {
     return c == TRAP;
 }
 
-void chrSetAlive(std::uint64_t &pos, std::uint64_t chrIdx) {
+inline void chrSetAlive(std::uint64_t &pos, std::uint64_t chrIdx) {
     pos |= CHARACTER_ALIVE_MASK << (chrIdx * CHARACTER_INFO_LENGTH);
 }
 
-void chrSetLoc(std::uint64_t &pos, std::uint64_t loc, std::uint64_t chrIdx) {
+inline void chrSetLoc(std::uint64_t &pos, std::uint64_t loc, std::uint64_t chrIdx) {
     std::uint64_t shift = chrIdx * CHARACTER_INFO_LENGTH;
     pos &= ~(CHARACTER_LOC_MASK << shift);
     pos |= loc << shift;
 }
 
-void chrSetStrength(std::uint64_t &pos, std::uint64_t strength, std::uint64_t chrIdx) {
+inline void chrSetStrength(std::uint64_t &pos, std::uint64_t strength, std::uint64_t chrIdx) {
     std::uint64_t shift = chrIdx * CHARACTER_INFO_LENGTH;
     pos &= ~(CHARACTER_STRENGTH_MASK << shift);
     pos |= strength << (shift + CHARACTER_STRENGTH_SHIFT);
@@ -488,11 +487,11 @@ bool addChr(std::uint64_t& pos, char chr, std::uint64_t loc) {
     }
 }
 
-void killChr(std::uint64_t &pos, std::size_t chrIdx) {
+inline void killChr(std::uint64_t &pos, std::size_t chrIdx) {
     pos &= ~(CHARACTER_ALIVE_MASK << (chrIdx * CHARACTER_INFO_LENGTH));
 }
 
-void killPlayer(std::uint64_t &pos) {
+inline void killPlayer(std::uint64_t &pos) {
     killChr(pos, PLAYER_IDX);
 }
 
@@ -561,35 +560,35 @@ std::uint64_t movePlayer(std::uint64_t &pos, int direction, std::size_t gridCols
     return moveChr(pos, PLAYER_IDX, direction, gridCols);
 }
 
-bool gateIsClosed(std::uint64_t pos) {
+inline bool gateIsClosed(std::uint64_t pos) {
     return pos & GATE_MASK;
 }
 
-std::uint64_t chrLoc(std::uint64_t pos, std::size_t chrIdx) {
+inline std::uint64_t chrLoc(std::uint64_t pos, std::size_t chrIdx) {
     return (pos >> (chrIdx * CHARACTER_INFO_LENGTH)) & CHARACTER_LOC_MASK;
 }
 
-bool chrIsAlive(std::uint64_t pos, std::size_t chrIdx) {
+inline bool chrIsAlive(std::uint64_t pos, std::size_t chrIdx) {
     return pos & (CHARACTER_ALIVE_MASK << (chrIdx * CHARACTER_INFO_LENGTH));
 }
 
-bool chrIsWalking(std::uint64_t pos, std::size_t chrIdx) {
+inline bool chrIsWalking(std::uint64_t pos, std::size_t chrIdx) {
     return pos & (CHARACTER_WALKING_MASK << (chrIdx * CHARACTER_INFO_LENGTH));
 }
 
-bool chrIsRed(std::uint64_t pos, std::size_t chrIdx) {
+inline bool chrIsRed(std::uint64_t pos, std::size_t chrIdx) {
     return pos & (CHARACTER_COLOR_MASK << (chrIdx * CHARACTER_INFO_LENGTH));
 }
 
-std::uint64_t chrStrength(std::uint64_t pos, std::size_t chrIdx) {
+inline std::uint64_t chrStrength(std::uint64_t pos, std::size_t chrIdx) {
     return ((pos >> (chrIdx * CHARACTER_INFO_LENGTH)) & CHARACTER_STRENGTH_MASK) >> CHARACTER_STRENGTH_SHIFT;
 }
 
-std::uint64_t playerLoc(std::uint64_t pos) {
+inline std::uint64_t playerLoc(std::uint64_t pos) {
     return chrLoc(pos, PLAYER_IDX);
 }
 
-bool playerIsAlive(std::uint64_t pos) {
+inline bool playerIsAlive(std::uint64_t pos) {
     return chrIsAlive(pos, PLAYER_IDX);
 }
 
@@ -616,12 +615,5 @@ void getOffsets(int direction, int &i_ofs, int &j_ofs) {
         assert(false);
     }
 }
-
-
-
-
-
-
-
 
 } // Anonymous namespace

@@ -1,6 +1,7 @@
+#include "solver.h"
 #include <cassert>
 #include <queue>
-#include "solver.h"
+#include <thread>
 #include <unordered_set>
 #include <vector>
 #define RMT_MAX INT_MAX
@@ -12,7 +13,7 @@ typedef std::queue<Position *> PositionQueue;
 typedef std::vector<Move *> MoveVector;
 typedef std::unordered_map<Position *, int, PositionHasher, PositionEqualFn> SolverData;
 
-Solver::Solver(Puzzle *puzzle) {
+Solver::Solver(const Puzzle *puzzle) {
     this->solved = false;
     this->puzzle = puzzle->getCopy();
 }
@@ -49,7 +50,7 @@ void addParent(PositionGraph &graph, Position *child, Position *parent) {
 
 void findPrimitives(const Puzzle *puzzle, PositionVector &primitives,
                     PositionGraph &backwardGraph, SolverData& data) {
-    /* Memory handling: If a position was closed when it is visited, deallocate it immediately;
+    /* Memory handling: If a position has been closed when it is visited, deallocate it immediately;
      * otherwise, store the pointer in closed and deallocate when finished. */
     Position *initial_position = puzzle->getInitialPosition();
     PositionQueue fringe;
@@ -57,8 +58,7 @@ void findPrimitives(const Puzzle *puzzle, PositionVector &primitives,
     fringe.push(initial_position);
 
     /* Initialize the root node in the backward graph. We do this extra
-     * step so that we do not need to check if root is included in the
-     * backward graph in the backward-traversing step. */
+     * step because the root is not always reacheable from itself. */
     backwardGraph.emplace(initial_position->getCopy(), PositionVector());
 
     while (fringe.size()) {
@@ -117,7 +117,7 @@ void updateRemotenessFrom(SolverData &data, PositionGraph& backwardGraph, Positi
             closed.insert(curr_pos);
             /* Update remoteness of current position. */
             updateRemoteness(data, curr_pos, rmt);
-            for (Position *next_pos : backwardGraph[curr_pos]) {
+            for (Position *next_pos : backwardGraph.at(curr_pos)) {
                 fringe.push(next_pos->getCopy());
                 ++numPosNextLevel;
             }
@@ -133,10 +133,58 @@ void updateRemotenessFrom(SolverData &data, PositionGraph& backwardGraph, Positi
     }
 }
 
-// TODO: Parallelize
 void calcRemoteness(SolverData &data, PositionGraph& backwardGraph, const PositionVector &primitives) {
     for (Position *pos : primitives) {
         updateRemotenessFrom(data, backwardGraph, pos);
+    }
+}
+
+void updateRemotenessFromMultithreaded(SolverData &data, std::mutex &dataLock,
+                                       PositionGraph& backwardGraph, Position *primitive) {
+    /* Similar logic as in findPrimitives(). */
+    PositionQueue fringe;
+    PositionSet closed;
+    fringe.push(primitive);
+    int rmt = 0;
+    size_t rem = 1;
+    size_t numPosNextLevel = 0;
+
+    while (fringe.size()) {
+        Position *curr_pos = fringe.front();
+        fringe.pop();
+        if (contains(closed, curr_pos)) {
+            delete curr_pos;
+        } else {
+            closed.insert(curr_pos);
+            /* Update remoteness of current position. */
+            dataLock.lock();
+            updateRemoteness(data, curr_pos, rmt);
+            dataLock.unlock();
+            for (Position *next_pos : backwardGraph.at(curr_pos)) {
+                fringe.push(next_pos->getCopy());
+                ++numPosNextLevel;
+            }
+        }
+        if (--rem == 0) {
+            rem = numPosNextLevel;
+            numPosNextLevel = 0;
+            ++rmt;
+        }
+    }
+    for (Position *pos : closed) {
+        delete pos;
+    }
+}
+
+void calcRemotenessMultithreaded(SolverData &data, std::mutex &dataLock,
+                                 PositionGraph& backwardGraph, const PositionVector &primitives) {
+    std::vector<std::thread> threads;
+    for (Position *pos : primitives) {
+        threads.emplace_back(updateRemotenessFromMultithreaded, std::ref(data),
+                             std::ref(dataLock), std::ref(backwardGraph), pos);
+    }
+    for (std::size_t i = 0; i < threads.size(); ++i) {
+        threads[i].join();
     }
 }
 
@@ -166,10 +214,11 @@ int Solver::solve() {
          * the meantime. */
         findPrimitives(this->puzzle, primitives, backwardGraph, this->data);
 
-        /* Step 2: Run BSF from every primitive state, find remoteness of each
+        /* Step 2: Run BFS from every primitive state, find remoteness of each
          * position to each primitive state, and take the minimum as the actual
          * remoteness of the position. */
-        calcRemoteness(this->data, backwardGraph, primitives);
+//        calcRemoteness(this->data, backwardGraph, primitives);
+        calcRemotenessMultithreaded(this->data, this->dataLock, backwardGraph, primitives);
 
         /* Step 3: Deallocate backwardGraph. No need to deallocated primitives
          * as they are already deallocated in Step 2. */
@@ -198,7 +247,7 @@ void Solver::printShortestPath(std::ostream &outs) {
         for (Move *move : validMoves) {
             nextPos = this->puzzle->doMove(currPos, move);
             assert(this->data.find(nextPos) != this->data.end());
-            int nextRmt = this->data[nextPos];
+            int nextRmt = this->data.at(nextPos);
             if (nextRmt < rmt) {
                 outs << "[rmt " << rmt << ": " << move->toString() << "]->";
                 delete currPos;
@@ -216,6 +265,10 @@ void Solver::printShortestPath(std::ostream &outs) {
     }
     delete currPos;
     outs << "[END]" << std::endl;
+}
+
+void Solver::printInfo(std::ostream &outs) const {
+    outs << "Number of positions: " << data.size() << "\n";
 }
 
 
