@@ -168,4 +168,8 @@ Puzzle *ToH::getCopy() const {
     return new ToH(this->disks, this->rods);
 }
 
+std::size_t ToH::hashSize() const {
+    return 0;
+}
+
 

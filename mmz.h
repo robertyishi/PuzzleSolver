@@ -63,6 +63,7 @@ public:
     virtual std::vector<Move *> getMoves(const Position *pos_) const override;
     virtual Position *doMove(const Position *pos_, const Move *move_) const override;
     virtual Puzzle *getCopy() const override;
+    virtual std::size_t hashSize() const override;
 
 private:
     std::uint64_t getDestLoc(std::uint64_t pos, std::size_t chrIdx, int direction) const;

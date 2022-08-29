@@ -77,15 +77,6 @@ Puzzle *Ternary::getCopy() const {
     return new Ternary;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
+std::size_t Ternary::hashSize() const {
+    return 0;
+}

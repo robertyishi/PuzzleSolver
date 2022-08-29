@@ -1,6 +1,8 @@
 #include "mmz.h"
 #include "solver.h"
 #include "toh.h"
+#include "optsolver.h"
+#include "lightsout.h"
 #include "ternary.h"
 #include <chrono>
 #include <iostream>
@@ -15,10 +17,25 @@ void debugPlay();
 
 int main()
 {
-    Ternary t;
-    Solver solver(&t);
-    solver.solve();
-    solver.printInfo(cout, true);
+    LightsOut t(6, 6);
+//    Solver solver(&t);
+//    solver.solve();
+//    solver.printInfo(cout, true);
+
+    OptSolver solver(&t);
+    cout << solver.solve() << endl;
+    bool done = false;
+    std::size_t pos;
+    while (!done) {
+        cout << "type in position as INTEGER: ";
+        cin >> pos;
+        if (pos == 0) {
+            done = true;
+        }
+        LightsOutPosition p(pos);
+        solver.printShortestPathFrom(&p, cout);
+    }
+//    solver.saveData("test.bin");
     return 0;
 }
 

@@ -617,3 +617,8 @@ void getOffsets(int direction, int &i_ofs, int &j_ofs) {
 }
 
 } // Anonymous namespace
+
+
+std::size_t MMz::hashSize() const {
+    return 0;
+}

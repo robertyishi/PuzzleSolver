@@ -14,6 +14,7 @@ public:
     virtual std::vector<Move *> getMoves(const Position *pos) const = 0;
     virtual Position *doMove(const Position *pos, const Move *move) const = 0;
     virtual Puzzle *getCopy() const = 0;
+    virtual std::size_t hashSize() const = 0;
 };
 
 #endif // PUZZLE_H

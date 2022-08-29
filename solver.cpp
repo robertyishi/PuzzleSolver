@@ -237,7 +237,6 @@ void Solver::printShortestPath(std::ostream &outs) {
         outs << "[NO SOLUTION]" << std::endl;
         return;
     }
-
     Position *currPos = this->puzzle->getInitialPosition();
     Position *nextPos;
     while (rmt) {

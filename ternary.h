@@ -42,6 +42,7 @@ public:
     virtual std::vector<Move *> getMoves(const Position *pos) const override;
     virtual Position *doMove(const Position *pos_, const Move *move_) const override;
     virtual Puzzle *getCopy() const override;
+    virtual std::size_t hashSize() const override;
 };
 
 #endif // TERNARY_H
